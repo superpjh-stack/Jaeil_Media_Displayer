@@ -18,13 +18,10 @@
 
 ## 서버 배포 (Docker)
 
-nginx로 정적 파일을 서빙합니다. 컨테이너 포트 80 → 호스트 8700.
+`docker-compose.yml`은 서버에서 빌드하지 않습니다. 시작할 때 GitHub 저장소 최신 main을 내려받아 nginx로 서빙합니다(호스트 포트 8700).
 
-```sh
-docker compose up -d --build
-```
-
-Hostinger Docker Manager에서는 `docker-compose.yml` 내용을 그대로 붙여넣으면 GitHub 저장소에서 바로 빌드합니다.
+- 내용 변경 → GitHub에 push → Docker Manager에서 프로젝트 재배포
+- 로컬에서 이미지로 직접 빌드하려면 `docker build -t jaeil-media-displayer . && docker run -p 8700:80 jaeil-media-displayer`
 배포 주소: http://187.52.127.215:8700/
 
 ## 내용 수정
