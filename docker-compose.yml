@@ -1,0 +1,11 @@
+# Hostinger Docker Manager에 이 내용을 그대로 붙여넣어도 동작하도록
+# 빌드 컨텍스트를 GitHub 저장소 주소로 지정했습니다.
+services:
+  media-displayer:
+    build:
+      context: https://github.com/superpjh-stack/Jaeil_Media_Displayer.git#main
+    image: jaeil-media-displayer:latest
+    container_name: jaeil-media-displayer
+    ports:
+      - "8700:80"
+    restart: unless-stopped

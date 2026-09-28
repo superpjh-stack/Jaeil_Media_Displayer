@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.swp
+.DS_Store
+start.command
+capture.sh
+README.md

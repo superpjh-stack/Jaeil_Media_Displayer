@@ -16,6 +16,17 @@
 - `←` / `→` 수동 전환, `F` 전체화면
 - `?start=3` 으로 특정 작품부터 시작
 
+## 서버 배포 (Docker)
+
+nginx로 정적 파일을 서빙합니다. 컨테이너 포트 80 → 호스트 8700.
+
+```sh
+docker compose up -d --build
+```
+
+Hostinger Docker Manager에서는 `docker-compose.yml` 내용을 그대로 붙여넣으면 GitHub 저장소에서 바로 빌드합니다.
+배포 주소: http://187.52.127.215:8700/
+
 ## 내용 수정
 
 `config.js` 만 고치면 됩니다.
