@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>포트폴리오 월</title>
+<style>
+  /* 밝고 다이나믹한 테마 — 가독성 기준은 유지
+     - 텍스트는 흰 카드 위에만, 강조 숫자는 진한 ink 색(흰 배경 대비 4.5:1 이상)
+     - 움직임: 배경 글로우 드리프트, 히어로 텍스트 등장·숫자 카운트업, 작은 칸 느린 줌 */
+  @property --glow { syntax: "<color>"; inherits: true; initial-value: #3b82f6; }
+  @property --glow-ink { syntax: "<color>"; inherits: true; initial-value: #1d4ed8; }
+
+  :root {
+    --bg: #eef2f7;
+    --card: #ffffff;
+    --soft: #f4f6fa;
+    --line: rgba(15, 23, 42, 0.07);
+    --text: #0f172a;
+    --body: #334155;
+    --muted: #5b6678;
+    --gap: 32px;
+    --pad: 64px;
+    --radius: 32px;
+    --shadow: 0 24px 60px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+    --font: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: var(--bg); overflow: hidden; }
+  body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: antialiased; word-break: keep-all; }
+  body.idle { cursor: none; }
+
+  /* 3840×2160 고정 무대를 창 크기에 맞춰 축소/확대 */
+  #stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 3840px; height: 2160px;
+    transform-origin: center center;
+    padding: var(--pad);
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: var(--gap);
+    background: var(--bg);
+    overflow: hidden;
+    transition: --glow 1.2s ease, --glow-ink 1.2s ease;
+  }
+
+  /* 배경 글로우 — 현재 작품 색을 따라 바뀌며 천천히 떠다님 */
+  .blob { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; }
+  .blob.a {
+    width: 2600px; height: 2600px; left: -700px; top: -1100px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--glow) 42%, transparent) 0%, transparent 62%);
+    animation: drift-a 26s ease-in-out infinite alternate;
+  }
+  .blob.b {
+    width: 2200px; height: 2200px; right: -800px; bottom: -1100px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.20) 0%, transparent 62%);
+    animation: drift-b 32s ease-in-out infinite alternate;
+  }
+  .blob.c {
+    width: 1800px; height: 1800px; left: 1500px; top: 900px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 62%);
+    animation: drift-c 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift-a { to { transform: translate(600px, 300px) scale(1.1); } }
+  @keyframes drift-b { to { transform: translate(-700px, -250px) scale(1.15); } }
+  @keyframes drift-c { to { transform: translate(-500px, -350px) scale(0.9); } }
+
+  [data-slot="hero"] { grid-column: 1 / 9;  grid-row: 1 / 5; }
+  [data-slot="s1"]   { grid-column: 9 / 13; grid-row: 1 / 3; }
+  [data-slot="s2"]   { grid-column: 9 / 13; grid-row: 3 / 5; }
+  [data-slot="s3"]   { grid-column: 1 / 5;  grid-row: 5 / 7; }
+  [data-slot="s4"]   { grid-column: 5 / 9;  grid-row: 5 / 7; }
+  #info              { grid-column: 9 / 13; grid-row: 5 / 7; }
+
+  /* ---------- 작품 타일 (공통) ---------- */
+  .tile {
+    position: relative; z-index: 1; overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    display: grid;
+  }
+  .tile::before { /* 액센트 라인 */
+    content: ""; position: absolute; left: 0; top: 0; right: 0; height: 10px; z-index: 2;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 40%, white));
+  }
+  .no {
+    font-family: var(--mono); font-weight: 800; line-height: 1;
+    color: #fff; background: var(--ink); border-radius: 12px;
+  }
+  .cat { font-weight: 800; letter-spacing: 0.01em; color: var(--ink); }
+  .meta { display: flex; align-items: center; }
+  h2 { font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; text-wrap: balance; }
+  .metric b { display: block; font-family: var(--mono); font-weight: 800; line-height: 1; color: var(--ink); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .metric span { display: block; color: var(--muted); font-weight: 600; }
+
+  /* 스크린샷 영역 */
+  .media { position: relative; overflow: hidden; background: var(--soft); min-height: 0; }
+  .window { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+  .chrome { display: none; }
+  .viewport { position: relative; flex: 1; overflow: hidden; min-height: 0; }
+  .viewport img, .viewport video { display: block; width: 100%; height: auto; }
+
+  /* ---------- 작은 칸: 위 스크린샷(느린 줌) / 아래 흰 캡션 바 ---------- */
+  .tile:not([data-slot="hero"]) { grid-template-rows: 1fr auto; }
+  .tile:not([data-slot="hero"]) .viewport img,
+  .tile:not([data-slot="hero"]) .viewport video {
+    transform-origin: 20% 0%;
+    animation: slowzoom 18s ease-in-out infinite alternate;
+  }
+  @keyframes slowzoom { from { transform: scale(1); } to { transform: scale(1.14); } }
+  .tile:not([data-slot="hero"]) .text {
+    display: grid; grid-template-columns: 1fr auto; grid-template-areas: "meta metrics" "title metrics";
+    align-items: center; column-gap: 40px; row-gap: 12px;
+    padding: 36px 48px 40px;
+  }
+  .tile:not([data-slot="hero"]) .text > div { display: contents; }
+  .tile:not([data-slot="hero"]) .meta { grid-area: meta; gap: 18px; }
+  .tile:not([data-slot="hero"]) .no { font-size: 32px; padding: 8px 14px; }
+  .tile:not([data-slot="hero"]) .cat { font-size: 28px; }
+  .tile:not([data-slot="hero"]) h2 { grid-area: title; font-size: 60px; }
+  .tile:not([data-slot="hero"]) .metrics { grid-area: metrics; text-align: right; }
+  .tile:not([data-slot="hero"]) .metric:not(:first-child) { display: none; }
+  .tile:not([data-slot="hero"]) .metric b { font-size: 72px; }
+  .tile:not([data-slot="hero"]) .metric span { font-size: 26px; margin-top: 10px; }
+  .tile:not([data-slot="hero"]) .sum,
+  .tile:not([data-slot="hero"]) .tags { display: none; }
+
+  /* ---------- 히어로: 왼쪽 텍스트 / 오른쪽 떠 있는 브라우저 창 ---------- */
+  [data-slot="hero"] { grid-template-columns: 1000px 1fr; }
+  [data-slot="hero"] .text {
+    order: -1;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 96px 80px 80px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 16%, white) 0%, #fff 55%);
+  }
+  [data-slot="hero"] .meta { gap: 24px; }
+  [data-slot="hero"] .no { font-size: 44px; padding: 10px 18px; }
+  [data-slot="hero"] .cat { font-size: 36px; }
+  [data-slot="hero"] h2 { font-size: 120px; margin-top: 40px; }
+  [data-slot="hero"] .sum { font-size: 50px; line-height: 1.5; color: var(--body); margin-top: 48px; text-wrap: pretty; }
+  [data-slot="hero"] .metrics { display: flex; gap: 64px; }
+  [data-slot="hero"] .metric b { font-size: 116px; }
+  [data-slot="hero"] .metric span { font-size: 32px; margin-top: 18px; }
+  [data-slot="hero"] .tags { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 56px; list-style: none; }
+  [data-slot="hero"] .tags li {
+    font-size: 30px; font-weight: 700; padding: 12px 26px; border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 16%, white); color: var(--ink);
+  }
+  [data-slot="hero"] .media {
+    padding: 80px 80px 80px 16px; display: flex; align-items: center;
+    background:
+      radial-gradient(900px 700px at 70% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+      var(--soft);
+  }
+  [data-slot="hero"] .window {
+    width: 100%; height: auto; max-height: 100%;
+    border-radius: 22px; background: #fff;
+    box-shadow: 0 50px 120px rgba(15, 23, 42, 0.22), 0 0 0 1px var(--line);
+    animation: float 7s ease-in-out infinite alternate;
+  }
+  @keyframes float { from { transform: translateY(-10px) rotate(-0.4deg); } to { transform: translateY(14px) rotate(0.4deg); } }
+  [data-slot="hero"] .chrome {
+    display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+    height: 68px; padding: 0 26px; background: #f1f4f8; border-bottom: 1px solid var(--line);
+  }
+  .chrome i { width: 20px; height: 20px; border-radius: 50%; }
+  .chrome i:nth-child(1) { background: #ff5f57; }
+  .chrome i:nth-child(2) { background: #febc2e; }
+  .chrome i:nth-child(3) { background: #28c840; }
+  .chrome span {
+    margin-left: 20px; flex: 1; font-family: var(--mono); font-size: 24px; color: var(--muted);
+    background: #fff; border-radius: 10px; padding: 8px 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  [data-slot="hero"] .viewport img.pan { animation: pan var(--pan-dur, 20s) ease-in-out infinite alternate; }
+  @keyframes pan { 0%, 15% { transform: translateY(0); } 85%, 100% { transform: translateY(var(--pan-y, 0px)); } }
+
+  /* 히어로 등장 — 요소별 시차를 두고 올라옴 */
+  .enter .meta, .enter h2, .enter .sum, .enter .metric, .enter .tags li {
+    animation: rise 0.8s var(--ease) both;
+  }
+  .enter .meta { animation-delay: 0.35s; }
+  .enter h2 { animation-delay: 0.45s; }
+  .enter .sum { animation-delay: 0.6s; }
+  .enter .metric:nth-child(1) { animation-delay: 0.75s; }
+  .enter .metric:nth-child(2) { animation-delay: 0.85s; }
+  .enter .tags li:nth-child(1) { animation-delay: 0.95s; }
+  .enter .tags li:nth-child(2) { animation-delay: 1.02s; }
+  .enter .tags li:nth-child(3) { animation-delay: 1.09s; }
+  .enter .window { animation: pop 1s var(--ease) 0.3s both, float 7s ease-in-out 1.3s infinite alternate; }
+  @keyframes rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(60px) scale(0.94); } to { opacity: 1; transform: translateY(-10px) rotate(-0.4deg); } }
+
+  /* ---------- 정보 패널: 현재 작품 색으로 칠해지는 컬러 블록 ---------- */
+  #info {
+    position: relative; z-index: 1; overflow: hidden;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--glow-ink) 0%, color-mix(in srgb, var(--glow-ink) 72%, #0f172a) 100%);
+    box-shadow: var(--shadow);
+    color: #fff;
+    padding: 52px 56px 64px;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto 1fr; column-gap: 48px;
+  }
+  #info::after { /* 은은한 하이라이트 */
+    content: ""; position: absolute; width: 900px; height: 900px; right: -300px; top: -420px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 65%); pointer-events: none;
+  }
+  .brand { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: baseline; }
+  .brand h1 { font-size: 48px; font-weight: 800; letter-spacing: -0.01em; }
+  #clock { font-family: var(--mono); font-size: 44px; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
+  .tagline { grid-column: 1 / 3; font-size: 32px; color: rgba(255, 255, 255, 0.85); margin-top: 12px; }
+  .now { align-self: end; position: relative; z-index: 1; }
+  .now small { display: block; font-size: 28px; font-weight: 800; letter-spacing: 0.02em; color: rgba(255, 255, 255, 0.8); }
+  #now-title { font-size: 56px; font-weight: 800; margin-top: 14px; line-height: 1.2; text-wrap: balance; }
+  #now-title.enter { animation: rise 0.7s var(--ease) 0.3s both; }
+  #dots { display: flex; gap: 12px; margin-top: 28px; }
+  #dots b {
+    font-family: var(--mono); font-size: 26px; font-weight: 800; padding: 8px 12px; border-radius: 8px;
+    color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.14); transition: all 0.4s var(--ease);
+  }
+  #dots b.on { color: var(--glow-ink); background: #fff; transform: scale(1.12); }
+  .qr { align-self: end; text-align: center; position: relative; z-index: 1; }
+  .qr img {
+    display: block; width: 340px; height: 340px; background: #fff; padding: 20px; border-radius: 22px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+  .qr img.enter { animation: pop-qr 0.8s var(--ease) 0.4s both; }
+  @keyframes pop-qr { from { opacity: 0; transform: scale(0.85) rotate(-4deg); } to { opacity: 1; transform: none; } }
+  .qr span { display: block; margin-top: 16px; font-size: 26px; font-weight: 700; }
+  .progress { position: absolute; left: 0; bottom: 0; height: 12px; width: 100%; background: rgba(255, 255, 255, 0.18); }
+  #bar { height: 100%; width: 0; background: #fff; border-radius: 0 6px 6px 0; }
+  #bar.run { animation: fill var(--dur) linear forwards; }
+  @keyframes fill { to { width: 100%; } }
+
+  /* 레이아웃 교체 애니메이션 (View Transitions) */
+  ::view-transition-group(*) { animation-duration: 1s; animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1); }
+  ::view-transition-old(*), ::view-transition-new(*) { height: 100%; object-fit: cover; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main id="stage">
+  <div class="blob a"></div><div class="blob b"></div><div class="blob c"></div>
+  <aside id="info">
+    <div class="brand"><h1 id="owner"></h1><div id="clock"></div></div>
+    <p class="tagline" id="tagline"></p>
+    <div class="now">
+      <small>지금 소개하는 작품</small>
+      <div id="now-title"></div>
+      <div id="dots"></div>
+    </div>
+    <div class="qr"><img id="now-qr" alt="QR"><span>스캔해서 라이브 데모 보기</span></div>
+    <div class="progress"><div id="bar"></div></div>
+  </aside>
+</main>
+
+<script src="config.js"></script>
+<script>
+  const cfg = window.PORTFOLIO;
+  const stage = document.getElementById("stage");
+  const SLOTS = ["hero", "s1", "s2", "s3", "s4"];
+  const $ = (id) => document.getElementById(id);
+  const pad2 = (n) => String(n).padStart(2, "0");
+
+  // 무대를 화면에 맞춤
+  function fit() {
+    const s = Math.min(innerWidth / 3840, innerHeight / 2160);
+    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+  }
+  addEventListener("resize", fit); fit();
+
+  function mediaFor(p) {
+    if (p.video) return `<video src="${p.video}" muted autoplay loop playsinline poster="${p.image}"></video>`;
+    if (p.tall) return `<img class="pan" src="${p.tall}" alt="">`;
+    return `<img src="${p.image}" alt="">`;
+  }
+
+  // 타일 생성 (화면에 5칸 — 작품이 5개 초과면 앞 5개만 사용)
+  const projects = cfg.projects.slice(0, SLOTS.length);
+  const tiles = projects.map((p, i) => {
+    const el = document.createElement("article");
+    el.className = "tile";
+    el.style.setProperty("--accent", p.accent);
+    el.style.setProperty("--ink", p.ink || p.accent);
+    el.style.viewTransitionName = `tile-${i}`;
+    el.innerHTML = `
+      <div class="media">
+        <div class="window">
+          <div class="chrome"><i></i><i></i><i></i><span>${p.url.replace(/^https?:\/\//, "")}</span></div>
+          <div class="viewport">${mediaFor(p)}</div>
+        </div>
+      </div>
+      <div class="text">
+        <div>
+          <div class="meta"><span class="no">${pad2(i + 1)}</span><span class="cat">${p.category}</span></div>
+          <h2>${p.title}</h2>
+          <p class="sum">${p.summary}</p>
+        </div>
+        <div>
+          <div class="metrics">${p.metrics.map(([v, l]) => `<div class="metric"><b data-value="${v}">${v}</b><span>${l}</span></div>`).join("")}</div>
+          <ul class="tags">${p.tags.map((t) => `<li>${t}</li>`).join("")}</ul>
+        </div>
+      </div>`;
+    stage.appendChild(el);
+    return el;
+  });
+
+  $("owner").textContent = cfg.owner;
+  $("tagline").textContent = cfg.tagline;
+  $("dots").innerHTML = projects.map((_, i) => `<b>${pad2(i + 1)}</b>`).join("");
+
+  // ?start=3 → 3번 작품부터 시작
+  let heroIdx = Math.min(projects.length, Math.max(1, +new URLSearchParams(location.search).get("start") || 1)) - 1;
+  const dur = (cfg.rotateSeconds || 18) * 1000;
+
+  // 히어로의 긴 캡처: 창 높이만큼만 스크롤하도록 이동 거리 계산
+  function updatePan() {
+    const img = document.querySelector('[data-slot="hero"] img.pan');
+    if (!img || !img.complete) return;
+    const vp = img.parentElement;
+    const dist = Math.max(0, img.offsetHeight - vp.offsetHeight);
+    img.style.setProperty("--pan-y", `-${dist}px`);
+    img.style.setProperty("--pan-dur", `${Math.max(12, dist / 45)}s`);
+  }
+
+  // 숫자 카운트업: "22/22", "700만+", "5.57시간" 등 첫 숫자만 0부터 올리고 나머지 글자는 유지
+  function countUp(el, delay = 0) {
+    const raw = el.dataset.value;
+    const m = raw.match(/\d+(\.\d+)?/);
+    if (!m) return;
+    const target = parseFloat(m[0]);
+    const decimals = m[1] ? m[1].length - 1 : 0;
+    const [pre, post] = [raw.slice(0, m.index), raw.slice(m.index + m[0].length)];
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = raw; return; }
+    const start = performance.now() + delay;
+    const len = 1400;
+    el.textContent = pre + (0).toFixed(decimals) + post;
+    // rAF가 멈춰도(백그라운드 탭 등) 최종값은 반드시 표시
+    setTimeout(() => { el.textContent = raw; }, delay + len + 200);
+    function step(now) {
+      const t = Math.min(1, Math.max(0, (now - start) / len));
+      const e = 1 - Math.pow(1 - t, 4);
+      el.textContent = pre + (target * e).toFixed(decimals) + post;
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function restart(el, cls = "enter") {
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  }
+
+  function layout() {
+    tiles.forEach((el, i) => {
+      const k = (i - heroIdx + tiles.length) % tiles.length;
+      el.dataset.slot = SLOTS[k];
+      el.classList.remove("enter");
+    });
+    const p = projects[heroIdx];
+    const hero = tiles[heroIdx];
+    restart(hero);
+    hero.querySelectorAll(".metric b").forEach((b, i) => countUp(b, 750 + i * 100));
+
+    $("now-title").textContent = p.title;
+    $("now-qr").src = p.qr;
+    restart($("now-title")); restart($("now-qr"));
+    stage.style.setProperty("--glow", p.accent);
+    stage.style.setProperty("--glow-ink", p.ink || p.accent);
+    [...$("dots").children].forEach((d, i) => d.classList.toggle("on", i === heroIdx));
+    const bar = $("bar");
+    bar.style.setProperty("--dur", dur + "ms");
+    restart(bar, "run");
+    requestAnimationFrame(updatePan);
+  }
+
+  function go(delta) {
+    heroIdx = (heroIdx + delta + tiles.length) % tiles.length;
+    if (document.startViewTransition) document.startViewTransition(layout);
+    else layout();
+    schedule();
+  }
+
+  let timer;
+  function schedule() { clearTimeout(timer); timer = setTimeout(() => go(1), dur); }
+
+  function tick() {
+    $("clock").textContent = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+  setInterval(tick, 1000); tick();
+
+  // 조작: ←/→ 수동 전환, F 전체화면, 마우스 3초 정지 시 커서 숨김
+  addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") go(1);
+    if (e.key === "ArrowLeft") go(-1);
+    if (e.key === "f" || e.key === "F") document.documentElement.requestFullscreen?.();
+  });
+  let idleT;
+  addEventListener("mousemove", () => {
+    document.body.classList.remove("idle");
+    clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add("idle"), 3000);
+  });
+  document.querySelectorAll("img.pan").forEach((img) => img.addEventListener("load", updatePan));
+
+  layout(); schedule();
+</script>
+</body>
+</html>
